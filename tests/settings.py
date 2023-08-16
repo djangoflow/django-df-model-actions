@@ -15,7 +15,7 @@ INSTALLED_APPS = [
     "django.contrib.sites",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "df_model_action",
+    "df_model_actions",
     "tests.test_app.apps.TestAppConfig",
 ]
 

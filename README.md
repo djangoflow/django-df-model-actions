@@ -15,7 +15,7 @@ pip install django-df-model-action
 ```
 INSTALLED_APPS = [
     ...
-    'df_model_action',
+    'df_model_actions',
     ...
 ]
 ```

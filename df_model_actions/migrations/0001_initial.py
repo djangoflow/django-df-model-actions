@@ -63,7 +63,7 @@ class Migration(migrations.Migration):
                     models.ForeignKey(
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="model_actions",
-                        to="df_model_action.serveraction",
+                        to="df_model_actions.serveraction",
                     ),
                 ),
                 (

@@ -4,7 +4,7 @@ from unittest.mock import patch
 from django.contrib.contenttypes.models import ContentType
 from django.test import TestCase
 
-from df_model_action.models import ModelAction, ServerAction
+from df_model_actions.models import ModelAction, ServerAction
 
 from .models import Post
 
