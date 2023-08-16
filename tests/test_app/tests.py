@@ -18,7 +18,7 @@ class CustomSignalTestCase(TestCase):
         )
 
     def test_signal_on_creation(self) -> None:
-        ModelAction.objects.create(
+        _ = ModelAction.objects.create(
             name="On Creation Test",
             trigger=ModelAction.TriggerCondition.on_creation,
             action=self.server_action,
@@ -30,7 +30,7 @@ class CustomSignalTestCase(TestCase):
         self.assertEqual(new_post.title, "Changed by signal")
 
     def test_signal_on_update(self) -> None:
-        ModelAction.objects.create(
+        _ = ModelAction.objects.create(
             name="On Update Test",
             trigger=ModelAction.TriggerCondition.on_update,
             action=self.server_action,
@@ -47,7 +47,7 @@ class CustomSignalTestCase(TestCase):
         delete_action = ServerAction.objects.create(
             name="Test Delete", python_code='print("Post Deleted")'
         )
-        ModelAction.objects.create(
+        _ = ModelAction.objects.create(
             name="On Deletion Test",
             trigger=ModelAction.TriggerCondition.on_deletion,
             action=delete_action,
@@ -60,7 +60,7 @@ class CustomSignalTestCase(TestCase):
         mock_print.assert_called_once_with("Post Deleted")
 
     def test_inactive_signal_does_not_execute(self) -> None:
-        ModelAction.objects.create(
+        _ = ModelAction.objects.create(
             name="Inactive Signal Test",
             trigger=ModelAction.TriggerCondition.on_creation,
             action=self.server_action,
@@ -72,7 +72,7 @@ class CustomSignalTestCase(TestCase):
         self.assertNotEqual(new_post.title, "Changed by signal")
 
     def test_condition_blocks_execution(self) -> None:
-        ModelAction.objects.create(
+        _ = ModelAction.objects.create(
             name="Condition Block Test",
             trigger=ModelAction.TriggerCondition.on_creation,
             action=self.server_action,
@@ -84,7 +84,7 @@ class CustomSignalTestCase(TestCase):
         self.assertNotEqual(new_post.title, "Changed by signal")
 
     def test_condition_allows_execution(self) -> None:
-        ModelAction.objects.create(
+        _ = ModelAction.objects.create(
             name="Condition Allow Test",
             trigger=ModelAction.TriggerCondition.on_creation,
             action=self.server_action,
@@ -96,7 +96,7 @@ class CustomSignalTestCase(TestCase):
         self.assertEqual(new_post.title, "Changed by signal")
 
     def test_signal_update(self) -> None:
-        ModelAction.objects.create(
+        _ = ModelAction.objects.create(
             name="Signal Update Test",
             trigger=ModelAction.TriggerCondition.on_update,
             action=self.server_action,
