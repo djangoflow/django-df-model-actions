@@ -1,6 +1,54 @@
+[project]
+name = "django-df-model-actions"
+description = "Module for automatic Django models signal handling and action execution."
+readme = "README.md"
+version = "1.0.0"
+authors = [
+    { name = "Apexive OSS", email = "open-source@apexive.com" },
+]
+classifiers = [
+    "Environment :: Web Environment",
+    "Framework :: Django",
+    "Framework :: Django :: 3.2",
+    "Framework :: Django :: 4.0",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Topic :: Internet",
+]
+requires-python = ">=3.9"
+urls = { homepage = "https://apexive.com/" }
+
+dependencies = [
+    "django"
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest",
+    "pytest-django",
+    "django-stubs",
+    "mypy==1.5.0",
+    "black==23.7.0",
+    "ruff==0.0.284"
+]
+
 [build-system]
-requires = ['setuptools>=40.8.0', 'wheel']
-build-backend = 'setuptools.build_meta:__legacy__'
+requires = ['setuptools>=68.1.0', 'wheel']
+build-backend = 'setuptools.build_meta'
+
+[tool.setuptools]
+include-package-data = true
+packages = ["df_model_actions"]
+
+
+[tools.black]
+max-line-length = 88
 
 
 [tool.ruff]
@@ -45,5 +93,20 @@ per-file-ignores = {}
 # Allow unused variables when underscore-prefixed.
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 
-# Assume Python 3.8.x
-target-version = "py38"
+# Assume Python 3.9.x
+target-version = "py39"
+
+[tool.mypy]
+ignore_missing_imports = true
+disable_error_code = ["attr-defined", "valid-type"]
+disallow_untyped_defs = true
+mypy_path = "df_model_actions"
+exclude = "venv|migrations|build|dist|docs"
+plugins = ["mypy_django_plugin.main"]
+
+[tool.django-stubs]
+django_settings_module = "tests.settings"
+
+[tool.pytest.ini_options]
+python_files = "tests.py test_*.py"
+DJANGO_SETTINGS_MODULE = "tests.settings"
