@@ -14,7 +14,9 @@ class CustomSignalTestCase(TestCase):
         self.post = Post.objects.create(title="Test", body="This is a test post")
         self.content_type = ContentType.objects.get_for_model(Post)
         self.server_action = ServerAction.objects.create(
-            name="Test Action", python_code='instance.title = "Changed by signal"'
+            name="Test Action",
+            executable_action='instance.title = "Changed by signal"',
+            type=ServerAction.Type.python_code,
         )
 
     def test_signal_on_creation(self) -> None:
@@ -45,7 +47,7 @@ class CustomSignalTestCase(TestCase):
     @patch("builtins.print")
     def test_signal_on_deletion(self, mock_print: Any) -> None:
         delete_action = ServerAction.objects.create(
-            name="Test Delete", python_code='print("Post Deleted")'
+            name="Test Delete", executable_action='print("Post Deleted")'
         )
         _ = ModelAction.objects.create(
             name="On Deletion Test",
@@ -108,7 +110,9 @@ class CustomSignalTestCase(TestCase):
 
         self.assertEqual(self.post.title, "Changed by signal")
 
-        self.server_action.python_code = 'instance.body = "Body changed by signal"'
+        self.server_action.executable_action = (
+            'instance.body = "Body changed by signal"'
+        )
         self.server_action.save()
 
         self.post.body = "Updated body again"
