@@ -1,20 +1,78 @@
-from typing import Any
+from typing import Any, TypeVar
 
 from django.contrib.contenttypes.models import ContentType
 from django.db import models
 from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
+from django.utils.module_loading import import_string
+
+from df_model_actions.settings import module_settings
+
+M = TypeVar("M", bound=models.Model)
 
 
 class ServerAction(models.Model):
     class Type(models.TextChoices):
         python_code = "python_code"
+        python_function = "python_function"
+        celery_task = "celery_task"
 
     name = models.CharField(max_length=255)
-    python_code = models.TextField(help_text="Python code. Allowed variables: instance")
+    executable_action = models.TextField(
+        help_text="It can be python code, python function or celery task", default=""
+    )
+    type = models.CharField(
+        max_length=32, choices=Type.choices, default=Type.python_code
+    )
+    context = models.JSONField(default=dict, blank=True)
 
     def __str__(self) -> str:
         return self.name
+
+    def execute_celery_task(self, instance: M, **kwargs: Any) -> None:
+        task_path = self.executable_action
+        try:
+            task = import_string(task_path)
+            kwargs.pop("signal")
+            parameters = {
+                "instance_id": instance.id,
+                "app_label": instance._meta.app_label,
+                "model_name": instance._meta.model_name,
+                "context": {**self.context, **kwargs},
+            }
+            try:
+                if module_settings.CELERY_USE_ASYNC:
+                    task.apply_async(kwargs=parameters)
+                else:
+                    task.apply(kwargs=parameters)
+            except Exception as e:
+                print(f"{type(e)}: {str(e)}")
+                raise type(e)(  # noqa B904
+                    f"ServerAction: Failed to execute the celery task:{task_path} "
+                )
+        except ModuleNotFoundError:
+            raise ModuleNotFoundError(  # noqa B904
+                f"ServerAction: Celery task {task_path} could not be found in current scope"
+            )
+
+    def execute_python_code(self, instance: M, **kwargs: Any) -> None:
+        exec(self.executable_action, {"instance": instance})  # noqa S102
+
+    def execute_python_function(self, instance: M, **kwargs: Any) -> None:
+        function_path = self.executable_action
+        try:
+            function = import_string(function_path)
+            try:
+                function(instance=instance, context={**self.context, **kwargs})
+            except Exception as e:
+                print(f"{type(e)}: {str(e)}")
+                raise type(e)(  # noqa B904
+                    f"ServerAction: Failed to execute the function:{function_path} "
+                )
+        except Exception:
+            raise ModuleNotFoundError(  # noqa B904
+                f"ServerAction: function {function_path} could not be found in current scope"
+            )
 
 
 class ModelAction(models.Model):
@@ -25,9 +83,7 @@ class ModelAction(models.Model):
 
     id = models.BigAutoField(primary_key=True)
     name = models.CharField(max_length=255)
-    trigger = models.CharField(
-        max_length=32, choices=TriggerCondition.choices, editable=False
-    )
+    trigger = models.CharField(max_length=32, choices=TriggerCondition.choices)
     action = models.ForeignKey(
         ServerAction, on_delete=models.CASCADE, related_name="model_actions"
     )
@@ -63,7 +119,12 @@ class ModelAction(models.Model):
             condition_result = True
 
         if condition_result:
-            exec(self.action.python_code, {"instance": instance})  # noqa S102
+            if self.action.type == ServerAction.Type.python_code:
+                self.action.execute_python_code(instance, **kwargs)
+            elif self.action.type == ServerAction.Type.python_function:
+                self.action.execute_python_function(instance, **kwargs)
+            else:
+                self.action.execute_celery_task(instance, **kwargs)
 
     def register_model_signal(self) -> None:
         model_class = self.model.model_class()

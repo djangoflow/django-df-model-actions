@@ -7,3 +7,5 @@ django-stubs
 mypy==1.5.0
 black==23.7.0
 ruff==0.0.284
+celery
+django-celery-beat
