@@ -17,6 +17,7 @@ class Post(models.Model):
 class BroadcastNotification(models.Model):
     title = models.CharField(max_length=255)
     body = models.TextField()
+    post = models.IntegerField()
 
     def __str__(self) -> str:
         return self.title

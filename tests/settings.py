@@ -74,3 +74,5 @@ LOGGING = {
 STATIC_URL = "/static/"
 
 ALLOWED_HOSTS = ["*"]
+
+DF_ACTIONS = {"CELERY_USE_ASYNC": False}

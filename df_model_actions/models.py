@@ -24,46 +24,53 @@ class ServerAction(models.Model):
     type = models.CharField(
         max_length=32, choices=Type.choices, default=Type.python_code
     )
-    context = models.JSONField(default=list, blank=True)
+    context = models.JSONField(default=dict, blank=True)
 
     def __str__(self) -> str:
         return self.name
 
-    def execute_celery_task(self, instance: M) -> None:
+    def execute_celery_task(self, instance: M, **kwargs: Any) -> None:
         task_path = self.executable_action
         try:
             task = import_string(task_path)
+            kwargs.pop("signal")
+            parameters = {
+                "instance_id": instance.id,
+                "app_label": instance._meta.app_label,
+                "model_name": instance._meta.model_name,
+                "context": {**self.context, **kwargs},
+            }
             try:
                 if module_settings.CELERY_USE_ASYNC:
-                    task.apply_async(instance=instance, context=self.context)
+                    task.apply_async(kwargs=parameters)
                 else:
-                    task.apply(instance=instance, context=self.context)
+                    task.apply(kwargs=parameters)
             except Exception as e:
                 print(f"{type(e)}: {str(e)}")
                 raise type(e)(  # noqa B904
                     f"ServerAction: Failed to execute the celery task:{task_path} "
                 )
-        except ImportError:
-            raise ImportError(  # noqa B904
+        except ModuleNotFoundError:
+            raise ModuleNotFoundError(  # noqa B904
                 f"ServerAction: Celery task {task_path} could not be found in current scope"
             )
 
-    def execute_python_code(self, instance: M) -> None:
+    def execute_python_code(self, instance: M, **kwargs: Any) -> None:
         exec(self.executable_action, {"instance": instance})  # noqa S102
 
-    def execute_python_function(self, instance: M) -> None:
+    def execute_python_function(self, instance: M, **kwargs: Any) -> None:
         function_path = self.executable_action
         try:
             function = import_string(function_path)
             try:
-                function(instance=instance, context=self.context)
+                function(instance=instance, context={**self.context, **kwargs})
             except Exception as e:
                 print(f"{type(e)}: {str(e)}")
                 raise type(e)(  # noqa B904
                     f"ServerAction: Failed to execute the function:{function_path} "
                 )
-        except ImportError:
-            raise ImportError(  # noqa B904
+        except Exception:
+            raise ModuleNotFoundError(  # noqa B904
                 f"ServerAction: function {function_path} could not be found in current scope"
             )
 
@@ -113,11 +120,11 @@ class ModelAction(models.Model):
 
         if condition_result:
             if self.action.type == ServerAction.Type.python_code:
-                self.action.execute_python_code(instance)
+                self.action.execute_python_code(instance, **kwargs)
             elif self.action.type == ServerAction.Type.python_function:
-                self.action.execute_python_function(instance)
+                self.action.execute_python_function(instance, **kwargs)
             else:
-                self.action.execute_celery_task(instance)
+                self.action.execute_celery_task(instance, **kwargs)
 
     def register_model_signal(self) -> None:
         model_class = self.model.model_class()
